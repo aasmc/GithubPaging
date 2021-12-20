@@ -1,15 +1,11 @@
 package ru.aasmc.githubpaging.data
 
-import android.util.Log
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import retrofit2.HttpException
 import ru.aasmc.githubpaging.api.GithubService
-import ru.aasmc.githubpaging.api.IN_QUALIFIER
-import ru.aasmc.githubpaging.api.RepoSearchResponse
 import ru.aasmc.githubpaging.model.Repo
-import ru.aasmc.githubpaging.model.RepoSearchResult
-import java.io.IOException
 
 private const val GITHUB_STARTING_PAGE_INDEX = 1
 private const val TAG = "GithubRepository"
@@ -20,78 +16,19 @@ private const val TAG = "GithubRepository"
 class GithubRepository(
     private val service: GithubService
 ) {
-    // keep the list of all results received
-    private val inMemoryCache = mutableListOf<Repo>()
-
-    // shared flow of results, which allow us to broadcast updates so
-    // the subscriber will have the latest data
-    private val searchResults = MutableSharedFlow<RepoSearchResult>(
-        replay = 1
-    )
-
-    // keep the last requested page. when the request is successful increment the page number
-    private var lastRequestedPage = GITHUB_STARTING_PAGE_INDEX
-
-    // avoid triggering multiple requests at the same time
-    private var isRequestInProgress = false
-
-    suspend fun getSearchResultStream(query: String): Flow<RepoSearchResult> {
-        Log.d("GithubRepository", "New query: $query")
-        lastRequestedPage = 1
-        inMemoryCache.clear()
-        requestAndSaveData(query)
-
-        return searchResults
-    }
-
-    suspend fun requestMore(query: String) {
-        if (isRequestInProgress) return
-        val successful: Boolean = requestAndSaveData(query)
-        if (successful) {
-            lastRequestedPage++
-        }
-    }
-
-    suspend fun retry(query: String) {
-        if (isRequestInProgress) return
-        requestAndSaveData(query)
-    }
-
-    private suspend fun requestAndSaveData(query: String): Boolean {
-        isRequestInProgress = true
-        var successful = false
-
-        val apiQuery = query + IN_QUALIFIER
-        try {
-            val response = service.searchRepos(apiQuery, lastRequestedPage, NETWORK_PAGE_SIZE)
-            Log.d(TAG, "response: $response")
-            val repos = response.items
-            inMemoryCache.addAll(repos)
-            val reposByName = reposByName(query)
-            searchResults.emit(RepoSearchResult.Success(reposByName))
-            successful = true
-        } catch (e: IOException) {
-            searchResults.emit(RepoSearchResult.Error(e))
-        } catch (e: HttpException) {
-            searchResults.emit(RepoSearchResult.Error(e))
-        }
-        isRequestInProgress = false
-        return successful
-    }
-
-    private fun reposByName(query: String): List<Repo> {
-        // from the in memory cache select only the repos whose name or
-        // description matches the query. Then order the results.
-        return inMemoryCache.filter {
-            it.name.contains(query, true) ||
-                    (it.description != null && it.description.contains(query, true))
-        }.sortedWith(compareByDescending<Repo> { it.stars }.thenBy { it.name })
+    fun getSearchResultStream(query: String): Flow<PagingData<Repo>> {
+        return Pager(
+            config = PagingConfig(
+                pageSize = NETWORK_PAGE_SIZE,
+                enablePlaceholders = false
+            ),
+            pagingSourceFactory = { GithubPagingSource(service, query) }
+        ).flow
     }
 
     companion object {
         const val NETWORK_PAGE_SIZE = 30
     }
-
 }
 
 
