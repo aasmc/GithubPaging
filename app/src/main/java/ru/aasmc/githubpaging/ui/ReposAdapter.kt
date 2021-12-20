@@ -1,11 +1,11 @@
 package ru.aasmc.githubpaging.ui
 
 import android.view.ViewGroup
+import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import ru.aasmc.githubpaging.model.Repo
 
-class ReposAdapter : ListAdapter<Repo, RepoViewHolder>(REPO_COMPARATOR) {
+class ReposAdapter : PagingDataAdapter<Repo, RepoViewHolder>(REPO_COMPARATOR) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RepoViewHolder {
         return RepoViewHolder.create(parent)
