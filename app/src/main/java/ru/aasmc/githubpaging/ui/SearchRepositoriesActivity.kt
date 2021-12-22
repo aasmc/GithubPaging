@@ -2,8 +2,11 @@ package ru.aasmc.githubpaging.ui
 
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -119,6 +122,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
         pagingData: Flow<PagingData<Repo>>,
         onScrollChanged: (UiAction.Scroll) -> Unit
     ) {
+        retryButton.setOnClickListener { reposAdapter.retry() }
         list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             // need the listener to know if the user has scrolled for the current query
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -166,6 +170,38 @@ class SearchRepositoriesActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 shouldScrollToTop.collect { shouldScroll ->
                     if (shouldScroll) list.scrollToPosition(0)
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // loadStateFlow emits every time there's a change in the load state
+                reposAdapter.loadStateFlow.collect { loadState ->
+                    val isListEmpty = loadState.refresh is LoadState.NotLoading &&
+                            reposAdapter.itemCount == 0
+                    emptyList.isVisible = isListEmpty
+                    // only show the list if refresh succeeds
+
+                    list.isVisible = !isListEmpty
+                    // show loading spinner during initial load or refresh
+                    progressBar.isVisible = loadState.source.refresh is LoadState.Loading
+                    // show the retry state if initial load or refresh fails
+                    retryButton.isVisible = loadState.source.refresh is LoadState.Error
+                    // toast on any error, regardless of whether it camr from RemoteMediator
+                    // or PagingSource
+                    val errorState = loadState.source.append as? LoadState.Error
+                        ?: loadState.source.prepend as? LoadState.Error
+                        ?: loadState.append as? LoadState.Error
+                        ?: loadState.prepend as? LoadState.Error
+
+                    errorState?.let {
+                        Toast.makeText(
+                            this@SearchRepositoriesActivity,
+                            "\uD83D\uDE28 Woops ${it.error}", Toast.LENGTH_LONG
+                        )
+                            .show()
+                    }
                 }
             }
         }
