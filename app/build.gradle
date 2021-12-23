@@ -21,6 +21,7 @@ android {
 
     kotlinOptions {
         jvmTarget = "1.8"
+        // need this for @OptIn(ExperimentalXXXApi::class)
         freeCompilerArgs += ["-Xopt-in=kotlin.RequiresOptIn"]
     }
 
