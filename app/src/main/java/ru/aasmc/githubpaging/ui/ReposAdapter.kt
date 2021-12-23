@@ -3,28 +3,50 @@ package ru.aasmc.githubpaging.ui
 import android.view.ViewGroup
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import ru.aasmc.githubpaging.R
 import ru.aasmc.githubpaging.model.Repo
 
-class ReposAdapter : PagingDataAdapter<Repo, RepoViewHolder>(REPO_COMPARATOR) {
+class ReposAdapter : PagingDataAdapter<UiModel, ViewHolder>(UIMODEL_COMPARATOR) {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RepoViewHolder {
-        return RepoViewHolder.create(parent)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        return if (viewType == R.layout.repo_view_item) {
+            RepoViewHolder.create(parent)
+        } else {
+            SeparatorViewHolder.create(parent)
+        }
     }
 
-    override fun onBindViewHolder(holder: RepoViewHolder, position: Int) {
-        val repoItem = getItem(position)
-        if (repoItem != null) {
-            holder.bind(repoItem)
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val uiModel = getItem(position)
+        uiModel?.let {
+            when (uiModel) {
+                is UiModel.RepoItem -> (holder as RepoViewHolder).bind(uiModel.repo)
+                is UiModel.SeparatorItem -> (holder as SeparatorViewHolder).bind(uiModel.description)
+            }
+        }
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return when (getItem(position)) {
+            is UiModel.RepoItem -> R.layout.repo_view_item
+            is UiModel.SeparatorItem -> R.layout.separator_view_item
+            null -> throw UnsupportedOperationException("Unknown view")
         }
     }
 
     companion object {
-        private val REPO_COMPARATOR = object : DiffUtil.ItemCallback<Repo>() {
-            override fun areItemsTheSame(oldItem: Repo, newItem: Repo): Boolean {
-                return oldItem.fullName == newItem.fullName
+
+        private val UIMODEL_COMPARATOR = object : DiffUtil.ItemCallback<UiModel>() {
+            override fun areItemsTheSame(oldItem: UiModel, newItem: UiModel): Boolean {
+                return (oldItem is UiModel.RepoItem && newItem is UiModel.RepoItem &&
+                        oldItem.repo.fullName == newItem.repo.fullName) ||
+                        (oldItem is UiModel.SeparatorItem && newItem is UiModel.SeparatorItem &&
+                                oldItem.description == newItem.description)
             }
 
-            override fun areContentsTheSame(oldItem: Repo, newItem: Repo): Boolean {
+            override fun areContentsTheSame(oldItem: UiModel, newItem: UiModel): Boolean {
                 return oldItem == newItem
             }
         }

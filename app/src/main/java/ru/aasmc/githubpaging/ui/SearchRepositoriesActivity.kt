@@ -48,7 +48,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
      */
     private fun ActivitySearchRepositoriesBinding.bindState(
         uiState: StateFlow<UiState>,
-        pagingData: Flow<PagingData<Repo>>,
+        pagingData: Flow<PagingData<UiModel>>,
         uiActions: (UiAction) -> Unit
     ) {
         val repoAdapter = ReposAdapter()
@@ -119,7 +119,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
     private fun ActivitySearchRepositoriesBinding.bindList(
         reposAdapter: ReposAdapter,
         uiState: StateFlow<UiState>,
-        pagingData: Flow<PagingData<Repo>>,
+        pagingData: Flow<PagingData<UiModel>>,
         onScrollChanged: (UiAction.Scroll) -> Unit
     ) {
         retryButton.setOnClickListener { reposAdapter.retry() }
@@ -183,7 +183,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
                     emptyList.isVisible = isListEmpty
                     // only show the list if refresh succeeds
 
-                    list.isVisible = !isListEmpty
+                    list.isVisible = !isListEmpty && loadState.refresh !is LoadState.Error
                     // show loading spinner during initial load or refresh
                     progressBar.isVisible = loadState.source.refresh is LoadState.Loading
                     // show the retry state if initial load or refresh fails
