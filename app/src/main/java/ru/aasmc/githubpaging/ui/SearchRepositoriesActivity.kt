@@ -29,7 +29,10 @@ class SearchRepositoriesActivity : AppCompatActivity() {
         val view = binding.root
         setContentView(view)
 
-        val viewModel = ViewModelProvider(this, Injection.provideViewModelFactory(this))
+        val viewModel = ViewModelProvider(
+            this,
+            Injection.provideViewModelFactory(this, this)
+        )
             .get(SearchRepositoriesViewModel::class.java)
 
         // add dividers between RecyclerView's row items
