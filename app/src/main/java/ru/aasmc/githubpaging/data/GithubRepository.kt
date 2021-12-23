@@ -9,9 +9,6 @@ import ru.aasmc.githubpaging.api.GithubService
 import ru.aasmc.githubpaging.db.RepoDatabase
 import ru.aasmc.githubpaging.model.Repo
 
-private const val GITHUB_STARTING_PAGE_INDEX = 1
-private const val TAG = "GithubRepository"
-
 /**
  * Repository class that works with local and remote dataSources.
  */
